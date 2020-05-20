@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"time"
 )
@@ -42,7 +43,7 @@ func handleCadenceActivityAsyncCompletion(c *gin.Context) {
 	body := c.Request.Body
 	token, _ := ioutil.ReadAll(body)
 	messagesCh <- token
-    go processAsyncResponse(messagesCh)
+	go processAsyncResponse(messagesCh)
 	c.String(http.StatusOK, "Get async cadence activity completion request")
 }
 
@@ -66,14 +67,16 @@ func handleVerification(c *gin.Context) {
 
 func processAsyncResponse(messagesCh chan []byte) {
 	token, _ := <-messagesCh
-	fmt.Println("received token %v", token)
-	time.Sleep(1 * time.Minute)
+	rand.Seed(time.Now().UnixNano())
+	r := rand.Intn(1000)
+	time.Sleep(time.Duration(r) * time.Millisecond)
 	resp, err := client.R().
-		SetBody([]byte (token)).
+		SetBody([]byte(token)).
 		EnableTrace().
 		Put(cadenceAddress)
-	if (err == nil) {
-		fmt.Println("Response from remote %v", resp)
+	if resp.StatusCode() == 200 {
+		s := string(token)
+		fmt.Println("Success response from time %v reponse %v token %v", time.Now(), resp, s)
 	} else {
 		fmt.Println("Error response from remote %v", err)
 	}
